@@ -1,30 +1,32 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-app = Flask(__name__)
+app = FastAPI(title="Core Backend Service")
 
+# Описываем структуру данных, которую пришлет Event Processor
+class EventUpdate(BaseModel):
+    event_id: str
+    filename: str
+    user_id: int
+    status: str
+    timestamp: str
 
-@app.route('/ping', methods=['GET'])
-def ping():
-    """Simple health check endpoint."""
-    return jsonify({"message": "pong"}), 200
+@app.post("/core/event-receiver")
+async def receive_event(event: EventUpdate):
+    # В реальности здесь будет запись в БД: await db.save(event)
+    
+    print(f" [CORE] Получено новое событие!")
+    print(f" ID: {event.event_id}")
+    print(f" Файл: {event.filename}")
+    print(f" Пользователь ID: {event.user_id}")
+    print(f" Статус: {event.status}")
+    
+    return {
+        "status": "accepted", 
+        "message": f"Event {event.event_id} registered in Core"
+    }
 
-
-@app.route('/data', methods=['GET'])
-def get_data():
-    """Returns a JSON object with sample data."""
-    sample_data = {"data": "This is a sample response"}
-    return jsonify(sample_data), 200
-
-
-@app.route('/data', methods=['POST'])
-def post_data():
-    """Receives JSON data and returns it in a response."""
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON"}), 400
-    data = request.get_json()
-    # You can process the data here
-    return jsonify({"received": data}), 201
-
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    import uvicorn
+    # Запускаем на 8001
+    uvicorn.run(app, port=8001)
